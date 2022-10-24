@@ -1,17 +1,51 @@
+import ballerinax/mysql;
+import ballerinax/mysql.driver as _;
+import ballerina/sql;
 import ballerina/http;
+import ballerina/log;
 
-# A service representing a network-accessible API
-# bound to port `9090`.
+configurable int port = ?;
+
+configurable string database = ?;
+
+configurable string password = ?;
+
+configurable string user = ?;
+
+configurable string host = ?;
+
+type isValid record {
+    boolean valid;
+    string address?;
+};
+
+type Person record {
+    string nic;
+    string address;
+};
+
 service / on new http:Listener(9090) {
 
-    # A resource for generating greetings
-    # + name - the input string name
-    # + return - string name with hello message or error
-    resource function get greeting(string name) returns string|error {
-        // Send a response back to the caller.
-        if name is "" {
-            return error("name should not be empty!");
+    isolated resource function get checkAddress/[string nic]/[string address]() returns isValid|error? {
+
+        mysql:Client mysqlEp = check new (host = host, user = user, password = password, database = database, port = port);
+        sql:ParameterizedQuery addressQuery = `SELECT * FROM address_details WHERE nic=${nic.trim()} AND address=${address.trim()}`;
+
+        Person|error queryRowResponse = mysqlEp->queryRow(addressQuery);
+
+        if queryRowResponse is error {
+            isValid result = {
+                valid: false
+            };
+            log:printInfo("Entered address is invalid");
+            return result;
+        } else {
+            isValid result = {
+                valid: true,
+                address: queryRowResponse.address
+            };
+            return result;
         }
-        return "Hello, " + name;
+
     }
 }

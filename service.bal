@@ -24,11 +24,13 @@ type Person record {
     string address;
 };
 
+final mysql:Client mysqlEp = check new (host = host, user = user, password = password, database = database, port = port);
+
 service / on new http:Listener(9090) {
 
     isolated resource function get checkAddress/[string nic]/[string address]() returns isValid|error? {
 
-        mysql:Client mysqlEp = check new (host = host, user = user, password = password, database = database, port = port);
+        
         sql:ParameterizedQuery addressQuery = `SELECT * FROM address_details WHERE nic=${nic.trim()} AND address=${address.trim()}`;
 
         Person|error queryRowResponse = mysqlEp->queryRow(addressQuery);
